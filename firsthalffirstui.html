@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumGrid — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070d14;--bg1:#0b1520;--bg2:#0f1c2a;--bg3:#152436;--bdr:rgba(30,80,120,0.4);--bdr2:rgba(30,80,120,0.18);--cyan:#00d4ff;--green:#00e87a;--amber:#ffb830;--red:#ff3d5a;--txt:#7aafcc;--txt2:#375f7a;--txth:#d8eef8;--f:'Oxanium',sans-serif;--m:'Fira Code',monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--f);background:var(--bg);color:var(--txt);}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,180,220,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,220,.018) 1px,transparent 1px);background-size:52px 52px;}
+#app{position:relative;z-index:1;display:grid;grid-template-columns:200px 1fr;grid-template-rows:50px 1fr;height:100vh;width:100vw;}
+#topbar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 20px;background:rgba(7,13,20,.96);border-bottom:1px solid var(--bdr);}
+.logo{font-size:16px;font-weight:800;letter-spacing:.14em;color:var(--txth);margin-right:10px;}
+.logo em{color:var(--cyan);font-style:normal;}
+.pill{font-family:var(--m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;}
+.pl{background:rgba(0,232,122,.10);color:var(--green);border:1px solid rgba(0,232,122,.28);}
+.pq{background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.25);}
+.pw{background:rgba(255,184,48,.08);color:var(--amber);border:1px solid rgba(255,184,48,.25);}
+.tsp{flex:1;}
+.tclock{font-family:var(--m);font-size:11px;color:var(--txt2);letter-spacing:.06em;}
+#sidebar{background:var(--bg1);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;}
+.sblbl{font-family:var(--m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--txt2);padding:14px 14px 5px;}
+.sbitem{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--txt2);border-left:2px solid transparent;}
+.sbitem.active{background:rgba(0,212,255,.06);border-left-color:var(--cyan);color:var(--cyan);}
+.sbico{font-size:12px;width:14px;text-align:center;}
+.sbhr{height:1px;background:var(--bdr2);margin:5px 0;}
+.sbn{display:flex;align-items:center;gap:8px;padding:6px 14px;}
+.nd{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dok{background:var(--green);}
+.dwn{background:var(--amber);}
+.nid{font-family:var(--m);font-size:9px;color:var(--txt);flex:1;}
+.ntm{font-family:var(--m);font-size:9px;color:var(--txt2);}
+.sbft{margin-top:auto;padding:10px 14px;border-top:1px solid var(--bdr2);font-family:var(--m);font-size:9px;color:var(--txt2);letter-spacing:.08em;}
+#main{display:grid;grid-template-columns:1.25fr 1fr;padding:10px;gap:8px;background:var(--bg);}
+.panel{background:var(--bg1);border:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;}
+.ph{display:flex;align-items:center;padding:7px 13px;border-bottom:1px solid var(--bdr2);flex-shrink:0;}
+.pht{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--txt2);}
+.phr{margin-left:auto;font-family:var(--m);font-size:9px;color:var(--txt2);}
+.pb{flex:1;padding:11px 13px;display:flex;flex-direction:column;overflow:hidden;}
+.nrows{display:flex;flex-direction:column;gap:7px;flex:1;justify-content:center;}
+.nrow{display:flex;align-items:center;gap:8px;}
+.nrid{font-family:var(--m);font-size:9px;color:var(--cyan);width:46px;flex-shrink:0;}
+.nrtrk{flex:1;height:3px;background:var(--bg3);border-radius:2px;}
+.nrbar{height:100%;border-radius:2px;}
+.nrval{font-family:var(--m);font-size:9px;color:var(--txt2);width:28px;text-align:right;flex-shrink:0;}
+#map-svg{width:100%;height:100%;display:block;}
+.cwrap{flex:1;overflow:hidden;}
+#dem-svg{width:100%;height:100%;display:block;}
+.cleg{display:flex;flex-wrap:wrap;gap:8px;padding-top:7px;flex-shrink:0;}
+.clit{display:flex;align-items:center;gap:5px;font-family:var(--m);font-size:9px;color:var(--txt2);}
+.cldot{width:6px;height:6px;border-radius:50%;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <div class="logo">QUANTUM<em>GRID</em></div>
+    <span class="pill pl">● Live</span>
+    <span class="pill pq">QAOA</span>
+    <span class="pill pw">⚠ N-05 Warm</span>
+    <div class="tsp"></div>
+    <div class="tclock" id="clock">—</div>
+  </div>
+
+  <div id="sidebar">
+    <div class="sblbl">System</div>
+    <div class="sbitem active"><span class="sbico">◈</span>Overview</div>
+    <div class="sbitem"><span class="sbico">◎</span>Control Loop</div>
+    <div class="sbitem"><span class="sbico">⬡</span>Digital Twin</div>
+    <div class="sbitem"><span class="sbico">⚛</span>Quantum Core</div>
+    <div class="sbhr"></div>
+    <div class="sblbl">Nodes</div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-00</div><div class="ntm">31.4°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-01</div><div class="ntm">35.8°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-02</div><div class="ntm">38.1°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-03</div><div class="ntm">29.7°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-04</div><div class="ntm">36.2°</div></div>
+    <div class="sbn"><div class="nd dwn"></div><div class="nid">NODE-05</div><div class="ntm">44.8°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-06</div><div class="ntm">33.0°</div></div>
+    <div class="sbn"><div class="nd dok"></div><div class="nid">NODE-07</div><div class="ntm">30.5°</div></div>
+    <div class="sbft">v0.9 · Qiskit 1.0 · Aer Sim</div>
+  </div>
+
+  <div id="main">
+    <div class="panel">
+      <div class="ph"><div class="pht">Grid Topology — Digital Twin</div><div class="phr">Mesh · 8N · 14E</div></div>
+      <div class="pb" style="padding:0;flex:1;">
+        <svg id="map-svg" viewBox="0 0 500 300" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="panel" style="flex:1;">
+        <div class="ph"><div class="pht">Node Load</div><div class="phr">8 nodes</div></div>
+        <div class="pb" style="padding-top:8px;">
+          <div class="nrows">
+            <div class="nrow"><div class="nrid">N-00</div><div class="nrtrk"><div class="nrbar" style="width:62%;background:var(--cyan)"></div></div><div class="nrval">62%</div></div>
+            <div class="nrow"><div class="nrid">N-01</div><div class="nrtrk"><div class="nrbar" style="width:48%;background:var(--cyan)"></div></div><div class="nrval">48%</div></div>
+            <div class="nrow"><div class="nrid">N-02</div><div class="nrtrk"><div class="nrbar" style="width:55%;background:var(--cyan)"></div></div><div class="nrval">55%</div></div>
+            <div class="nrow"><div class="nrid">N-03</div><div class="nrtrk"><div class="nrbar" style="width:34%;background:var(--cyan)"></div></div><div class="nrval">34%</div></div>
+            <div class="nrow"><div class="nrid">N-04</div><div class="nrtrk"><div class="nrbar" style="width:71%;background:var(--amber)"></div></div><div class="nrval">71%</div></div>
+            <div class="nrow"><div class="nrid">N-05</div><div class="nrtrk"><div class="nrbar" style="width:88%;background:var(--red)"></div></div><div class="nrval">88%</div></div>
+            <div class="nrow"><div class="nrid">N-06</div><div class="nrtrk"><div class="nrbar" style="width:41%;background:var(--cyan)"></div></div><div class="nrval">41%</div></div>
+            <div class="nrow"><div class="nrid">N-07</div><div class="nrtrk"><div class="nrbar" style="width:29%;background:var(--cyan)"></div></div><div class="nrval">29%</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="ph"><div class="pht">Demand — LSTM Forecast</div><div class="phr">T+30s horizon</div></div>
+        <div class="pb">
+          <div class="cwrap"><svg id="dem-svg" viewBox="0 0 340 120" preserveAspectRatio="none"></svg></div>
+          <div class="cleg" id="cleg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+function tick(){const d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
+setInterval(tick,1000);tick();
+
+(function(){
+  const svg=document.getElementById('map-svg');
+  const N=8,cx=250,cy=150,r=105;
+  const C=['#00d4ff','#00e87a','#00e87a','#00d4ff','#ffb830','#ff3d5a','#00e87a','#00d4ff'];
+  const L=[.62,.48,.55,.34,.71,.88,.41,.29];
+  const pos=Array.from({length:N},(_,i)=>{const a=(2*Math.PI*i/N)-Math.PI/2;return{x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};});
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML='<filter id="g"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  svg.appendChild(defs);
+  [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[0,4],[1,5],[2,6],[3,7]].forEach(([a,b])=>{
+    const pa=pos[a],pb=pos[b],act=L[a]>.65||L[b]>.65;
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',pa.x);ln.setAttribute('y1',pa.y);ln.setAttribute('x2',pb.x);ln.setAttribute('y2',pb.y);
+    ln.setAttribute('stroke',act?'rgba(0,212,255,0.35)':'rgba(30,80,120,0.3)');
+    ln.setAttribute('stroke-width','1.2');ln.setAttribute('stroke-dasharray',act?'5 3':'3 5');
+    svg.appendChild(ln);
+  });
+  pos.forEach((p,i)=>{
+    const col=C[i],load=L[i];
+    const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('cx',p.x);ring.setAttribute('cy',p.y);ring.setAttribute('r',16+load*8);
+    ring.setAttribute('fill','none');ring.setAttribute('stroke',col);ring.setAttribute('stroke-width','0.5');ring.setAttribute('opacity','0.18');
+    svg.appendChild(ring);
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','13');
+    c.setAttribute('fill',`rgba(${col==='#ff3d5a'?'255,61,90':col==='#ffb830'?'255,184,48':'0,212,255'},0.08)`);
+    c.setAttribute('stroke',col);c.setAttribute('stroke-width',load>.8?'2':'1');c.setAttribute('filter','url(#g)');
+    svg.appendChild(c);
+    const val=document.createElementNS('http://www.w3.org/2000/svg','text');
+    val.setAttribute('x',p.x);val.setAttribute('y',p.y+3.5);val.setAttribute('text-anchor','middle');
+    val.setAttribute('font-family','Fira Code,monospace');val.setAttribute('font-size','8');val.setAttribute('fill',col);
+    val.textContent=(load*100).toFixed(0)+'%';svg.appendChild(val);
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',p.x);lbl.setAttribute('y',p.y+24);lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('font-family','Fira Code,monospace');lbl.setAttribute('font-size','8');lbl.setAttribute('fill','rgba(58,120,160,0.8)');
+    lbl.textContent=`N-0${i}`;svg.appendChild(lbl);
+  });
+  const cl=document.createElementNS('http://www.w3.org/2000/svg','text');
+  cl.setAttribute('x',cx);cl.setAttribute('y',cy+3);cl.setAttribute('text-anchor','middle');
+  cl.setAttribute('font-family','Fira Code,monospace');cl.setAttribute('font-size','7');cl.setAttribute('fill','rgba(0,212,255,0.2)');
+  cl.textContent='QUANTUM CORE';svg.appendChild(cl);
+})();
+
+(function(){
+  const svg=document.getElementById('dem-svg');
+  const W=340,H=120,pad=10;
+  const C=['#00d4ff','#00e87a','#ffb830','#ff3d5a','#a78bfa','#4af0c8','#ffd460','#ff8888'];
+  const HIST=50;
+  function fl(seed,base){let v=base;return Array.from({length:HIST},(_,i)=>{v+=Math.sin(i*.3+seed)*.018+(Math.random()-.5)*.025;v=Math.max(.05,Math.min(.98,v));return v;});}
+  const lines=[fl(0,.62),fl(1,.48),fl(2,.55),fl(3,.34),fl(4,.71),fl(5,.88),fl(6,.41),fl(7,.29)];
+  const sw=(W-pad*2)/(HIST-1);
+  [.25,.5,.75].forEach(v=>{const y=H-pad-(H-pad*2)*v;const ln=document.createElementNS('http://www.w3.org/2000/svg','line');ln.setAttribute('x1',pad);ln.setAttribute('y1',y);ln.setAttribute('x2',W-pad);ln.setAttribute('y2',y);ln.setAttribute('stroke','rgba(30,80,120,0.18)');ln.setAttribute('stroke-width','.5');svg.appendChild(ln);});
+  const thr=document.createElementNS('http://www.w3.org/2000/svg','line');
+  thr.setAttribute('x1',pad);thr.setAttribute('y1',H-pad-(H-pad*2)*.8);thr.setAttribute('x2',W-pad);thr.setAttribute('y2',H-pad-(H-pad*2)*.8);
+  thr.setAttribute('stroke','rgba(255,61,90,0.25)');thr.setAttribute('stroke-width','0.75');thr.setAttribute('stroke-dasharray','4 3');
+  svg.appendChild(thr);
+  lines.forEach((hist,ni)=>{
+    const pts=hist.map((v,t)=>`${pad+t*sw},${H-pad-(H-pad*2)*v}`).join(' ');
+    const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    pl.setAttribute('points',pts);pl.setAttribute('fill','none');pl.setAttribute('stroke',C[ni]);
+    pl.setAttribute('stroke-width',ni<2?'1.4':'0.7');pl.setAttribute('opacity',ni<4?'.85':'.4');
+    svg.appendChild(pl);
+  });
+  const lv=lines[0][HIST-1];
+  const fpts=Array.from({length:14},(_,i)=>{const x=pad+(HIST-1+i)*sw;const y=H-pad-(H-pad*2)*Math.min(.97,lv+i*.005);return`${x},${y}`;}).join(' ');
+  const fpl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  fpl.setAttribute('points',fpts);fpl.setAttribute('fill','none');fpl.setAttribute('stroke','rgba(0,212,255,.4)');
+  fpl.setAttribute('stroke-width','1');fpl.setAttribute('stroke-dasharray','4 3');svg.appendChild(fpl);
+  document.getElementById('cleg').innerHTML=lines.map((_,i)=>`<div class="clit"><div class="cldot" style="background:${C[i]}"></div>N-0${i}</div>`).join('')+`<div class="clit" style="margin-left:auto;color:rgba(0,212,255,.45)">--- Forecast</div>`;
+})();
+</script>
+</body>
+</html>
