@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumGrid — Live Control Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --bg:        #080c10;
+  --bg1:       #0c1219;
+  --bg2:       #101822;
+  --bg3:       #141f2c;
+  --border:    rgba(40,90,130,0.35);
+  --border2:   rgba(40,90,130,0.15);
+
+  --cyan:      #00d4ff;
+  --cyan-dim:  rgba(0,212,255,0.12);
+  --cyan-glow: rgba(0,212,255,0.25);
+  --green:     #00ff88;
+  --green-dim: rgba(0,255,136,0.10);
+  --amber:     #ffb830;
+  --amber-dim: rgba(255,184,48,0.10);
+  --red:       #ff3d5a;
+  --red-dim:   rgba(255,61,90,0.10);
+  --violet:    #a78bfa;
+
+  --txt:       #8fb8d0;
+  --txt2:      #4a7a99;
+  --txt-hi:    #dff0f8;
+
+  --font-ui:   'Oxanium', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+
+  --sidebar-w: 220px;
+  --topbar-h:  52px;
+}
+
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--txt);
+  cursor: default;
+}
+
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,180,220,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,180,220,.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+
+#app {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+#topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: rgba(8,12,16,0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  gap: 0;
+}
+
+.logo {
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--txt-hi);
+  margin-right: 24px;
+  white-space: nowrap;
+}
+.logo em { color: var(--cyan); font-style: normal; }
+
+.top-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 20px;
+}
+
+.top-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  padding: 4px 10px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+.pill-live    { background: rgba(0,255,136,.12); color: var(--green); border: 1px solid rgba(0,255,136,.3); }
+.pill-quantum { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(0,212,255,.3); }
+.pill-warn    { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,48,.3); }
+
+.top-blink { animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.top-spacer { flex: 1; }
+
+.top-time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--txt2);
+  letter-spacing: .08em;
+  margin-right: 20px;
+}
+
+.top-nav {
+  display: flex;
+  gap: 2px;
+}
+.top-nav button {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--txt2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .2s;
+}
+.top-nav button:hover,
+.top-nav button.active {
+  color: var(--cyan);
+  border-color: rgba(0,212,255,.25);
+  background: var(--cyan-dim);
+}
+
+
+#sidebar {
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  padding: 14px 16px 6px;
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background .15s;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--txt2);
+}
+.sb-item:hover { background: var(--bg2); color: var(--txt); }
+.sb-item.active {
+  background: var(--cyan-dim);
+  border-left-color: var(--cyan);
+  color: var(--cyan);
+}
+.sb-icon { font-size: 13px; width: 16px; text-align: center; }
+
+.sb-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: rgba(255,61,90,.15);
+  color: var(--red);
+  border: 1px solid rgba(255,61,90,.3);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+.sb-badge.ok {
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: rgba(0,255,136,.25);
+}
+
+.sb-divider {
+  height: 1px;
+  background: var(--border2);
+  margin: 6px 0;
+}
+
+
+.sb-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.sb-node:hover { background: var(--bg2); }
+
+.node-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-ok     { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s ease-in-out infinite; }
+.dot-warn   { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: blink 1.2s ease-in-out infinite; }
+.dot-crit   { background: var(--red);   box-shadow: 0 0 6px var(--red);   animation: blink .7s ease-in-out infinite; }
+
+.node-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--txt);
+  flex: 1;
+}
+.node-temp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--txt2);
+}
+
+.sb-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border2);
+}
+.sb-version {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+  letter-spacing: .1em;
+}
+
+
+#main {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 10px;
+  background: var(--bg);
+}
+
+
+.row-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.row-mid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+
+.row-bot {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  flex-shrink: 0;
+  height: 160px;
+}
+
+
+.panel {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.panel-live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 5px var(--green);
+  animation: blink 1.5s ease-in-out infinite;
+  margin-left: auto;
+}
+
+.panel-body {
+  flex: 1;
+  padding: 12px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  color: var(--txt2);
+  margin-left: auto;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.panel:hover::before { opacity: 1; }
+
+.metric-big {
+  font-family: var(--font-mono);
+  font-size: 38px;
+  font-weight: 500;
+  color: var(--txt-hi);
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+.metric-big .unit {
+  font-size: 15px;
+  color: var(--cyan);
+  font-weight: 400;
+  margin-left: 2px;
+}
+.metric-big .sign {
+  font-size: 13px;
+  color: var(--green);
+}
+.metric-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--txt2);
+  margin-top: 5px;
+  letter-spacing: .08em;
+}
+
+.metric-mini-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.metric-mini {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  padding: 7px 10px;
+}
+.metric-mini-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--txt-hi);
+  letter-spacing: -.01em;
+}
+.metric-mini-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+  letter-spacing: .1em;
+  margin-top: 2px;
+}
+
+.status-lights {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.s-light {
+  flex: 1;
+  height: 4px;
+  border-radius: 1px;
+}
+
+#grid-map {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+#map-svg {
+  width: 100%; height: 100%;
+}
+
+
+.grid-node-outer {
+  fill: none;
+  stroke-width: 1;
+  transition: all .5s;
+}
+.grid-node-inner {
+  transition: all .5s;
+}
+.grid-edge {
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+}
+.edge-active {
+  animation: dash-flow 1.5s linear infinite;
+}
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+.node-label-svg {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  fill: #4a7a99;
+  text-anchor: middle;
+}
+.node-val-svg {
+  font-family: 'Fira Code', monospace;
+  font-size: 8px;
+  text-anchor: middle;
+}
+
+
+.demand-chart-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.demand-svg { width: 100%; height: 100%; }
+
+.demand-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+}
+.legend-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+
+.qubo-matrix {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+.q-cell {
+  border-radius: 1px;
+  transition: background .4s;
+}
+
+.qaoa-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.qaoa-bar-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.qaoa-bar-track {
+  flex: 1;
+  height: 5px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.qaoa-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .8s ease;
+}
+.qaoa-bar-val {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+  width: 28px;
+}
+
+
+.log-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.log-scroll::-webkit-scrollbar { width: 3px; }
+.log-scroll::-webkit-scrollbar-track { background: transparent; }
+.log-scroll::-webkit-scrollbar-thumb { background: var(--border); }
+
+.log-entry {
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.log-ts  { color: var(--txt2); opacity: .6; flex-shrink: 0; }
+.log-msg { color: var(--txt); }
+.log-msg.cyan   { color: var(--cyan); }
+.log-msg.green  { color: var(--green); }
+.log-msg.amber  { color: var(--amber); }
+.log-msg.red    { color: var(--red); }
+
+
+.node-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.node-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nr-id {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--cyan);
+  width: 50px;
+  flex-shrink: 0;
+}
+.nr-track {
+  flex: 1;
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.nr-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .8s ease;
+}
+.nr-val {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--txt2);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+
+.thermal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+.th-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  border: 1px solid var(--border2);
+  transition: background .4s, border-color .4s;
+  cursor: pointer;
+}
+.th-cell:hover { border-color: var(--cyan); }
+.th-node-id {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--txt2);
+  letter-spacing: .08em;
+  margin-bottom: 3px;
+}
+.th-temp {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+.th-bar {
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  margin-top: 4px;
+  transition: width .4s;
+}
+
+
+.inject-btn {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: rgba(255,61,90,.08);
+  color: var(--red);
+  border: 1px solid rgba(255,61,90,.35);
+  cursor: pointer;
+  transition: all .2s;
+  margin-left: auto;
+}
+.inject-btn:hover {
+  background: rgba(255,61,90,.18);
+  box-shadow: 0 0 14px rgba(255,61,90,.2);
+}
+.inject-btn:active { transform: scale(.97); }
+
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+
+  <div id="topbar">
+    <div class="logo">QUANTUM<em>GRID</em></div>
+
+    <span class="top-pill pill-live top-blink">● LIVE</span>
+    <span class="top-pill pill-quantum">QAOA ACTIVE</span>
+    <span class="top-pill pill-warn" id="top-warn-pill">⚠ NODE_05 WARM</span>
+
+    <div class="top-divider"></div>
+
+    <div class="top-nav">
+      <button class="active">Dashboard</button>
+      <button>Topology</button>
+      <button>ML Forecast</button>
+      <button>Quantum</button>
+      <button>Hardware</button>
+    </div>
+
+    <div class="top-spacer"></div>
+
+    <div class="top-time" id="clock">—</div>
+
+    <button class="inject-btn" onclick="injectSpike()">⚡ Inject Event</button>
+  </div>
+
+
+  <div id="sidebar">
+    <div class="sb-section-label">System</div>
+    <div class="sb-item active"><span class="sb-icon">◈</span>Overview<span class="sb-badge ok">OK</span></div>
+    <div class="sb-item"><span class="sb-icon">◎</span>Control Loop</div>
+    <div class="sb-item"><span class="sb-icon">⬡</span>Digital Twin</div>
+    <div class="sb-item"><span class="sb-icon">⚛</span>Quantum Core</div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-section-label">ML Engine</div>
+    <div class="sb-item"><span class="sb-icon">≋</span>LSTM Forecast</div>
+    <div class="sb-item"><span class="sb-icon">◇</span>Spike Detector<span class="sb-badge">2</span></div>
+    <div class="sb-item"><span class="sb-icon">⊞</span>QUBO Builder</div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-section-label">Nodes — Live</div>
+    <div id="sb-nodes"></div>
+
+    <div class="sb-footer">
+      <div class="sb-version">v0.9.4-alpha · Qiskit 1.0 · Aer</div>
+    </div>
+  </div>
+
+
+  <div id="main">
+
+    <div class="row-top">
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Routing Efficiency</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body">
+          <div class="metric-big">
+            <span id="eff-val">97.3</span><span class="unit">%</span>
+            <span class="sign" style="font-size:12px;margin-left:6px;">↑ +2.1</span>
+          </div>
+          <div class="metric-sub">vs classical baseline</div>
+          <div class="metric-mini-row">
+            <div class="metric-mini">
+              <div class="metric-mini-val" id="loop-lat">12<span style="font-size:10px;color:var(--cyan)">ms</span></div>
+              <div class="metric-mini-label">Loop Latency</div>
+            </div>
+            <div class="metric-mini">
+              <div class="metric-mini-val">p=<span style="color:var(--cyan)">2</span></div>
+              <div class="metric-mini-label">QAOA Depth</div>
+            </div>
+            <div class="metric-mini">
+              <div class="metric-mini-val" id="qubo-e">−2.84</div>
+              <div class="metric-mini-label">QUBO Energy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Node Load</div>
+          <div class="panel-sub">8 nodes</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body" style="padding-top:8px;">
+          <div class="node-rows" id="node-rows"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Thermal Map</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body" style="padding:8px 10px;">
+          <div class="thermal-grid" id="thermal-grid"></div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="row-mid">
+
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Grid Topology — Digital Twin</div>
+          <div class="panel-sub" id="twin-status">MESH · 8N · 14E</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div id="grid-map" class="panel-body" style="padding:0;">
+          <svg id="map-svg" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Demand Forecast — LSTM</div>
+          <div class="panel-sub">T+30s horizon</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body">
+          <div class="demand-chart-wrap">
+            <svg id="demand-svg" class="demand-svg" viewBox="0 0 320 140" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="demand-legend" id="demand-legend"></div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="row-bot">
+
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">QUBO Optimizer — QAOA</div>
+          <div class="panel-sub" id="qaoa-status">Converging...</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body" style="flex-direction:row; gap:14px; padding:8px 12px;">
+
+          <div id="qubo-matrix" class="qubo-matrix" style="width:96px; height:96px; grid-template-columns:repeat(8,1fr); flex-shrink:0;"></div>
+
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:0;">
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--txt2);letter-spacing:.12em;margin-bottom:8px;">VARIATIONAL PARAMETERS</div>
+            <div id="qaoa-bars"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">System Log</div>
+          <div class="panel-live-dot"></div>
+        </div>
+        <div class="panel-body" style="padding:6px 12px;">
+          <div class="log-scroll" id="event-log"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+const N = 8;
+const NODE_COLORS = ['#00d4ff','#00ff88','#ffb830','#ff3d5a','#a78bfa','#00d4ff','#00ff88','#ffb830'];
+
+let nodes = Array.from({length:N}, (_,i) => ({
+  id: `N-0${i}`,
+  load:  0.3 + Math.random()*.5,
+  temp:  28 + Math.random()*18,
+  active: true,
+  routing: 0
+}));
+
+
+const cx=240, cy=160, r=110;
+const nodePos = Array.from({length:N}, (_,i) => {
+  const a = (2*Math.PI*i/N) - Math.PI/2;
+  return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+});
+
+
+const edges = [];
+for(let i=0;i<N;i++) edges.push([i,(i+1)%N]);
+edges.push([0,4],[1,5],[2,6],[3,7]);
+
+
+const HIST = 60;
+const demandHistory = Array.from({length:N}, () =>
+  Array.from({length:HIST}, () => 0.3+Math.random()*.4)
+);
+
+let spikeActive = false;
+let spikeNodes = [];
+let spikeTimer = 0;
+
+
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+setInterval(updateClock, 1000); updateClock();
+
+
+function renderSidebarNodes() {
+  const el = document.getElementById('sb-nodes');
+  el.innerHTML = nodes.map((n,i) => {
+    const cls = n.temp > 52 ? 'dot-crit' : n.temp > 42 ? 'dot-warn' : 'dot-ok';
+    return `<div class="sb-node">
+      <div class="node-dot ${cls}"></div>
+      <div class="node-label">${n.id}</div>
+      <div class="node-temp">${n.temp.toFixed(1)}°</div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderNodeRows() {
+  const el = document.getElementById('node-rows');
+  el.innerHTML = nodes.map((n,i) => {
+    const pct = (n.load*100).toFixed(0);
+    const col = n.load > .85 ? 'var(--red)' : n.load > .65 ? 'var(--amber)' : 'var(--cyan)';
+    return `<div class="node-row">
+      <div class="nr-id">${n.id}</div>
+      <div class="nr-track"><div class="nr-fill" style="width:${pct}%;background:${col};"></div></div>
+      <div class="nr-val">${(n.load*100).toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderThermal() {
+  const el = document.getElementById('thermal-grid');
+  el.innerHTML = nodes.map((n,i) => {
+    const t = n.temp;
+    const ratio = Math.min((t-20)/60, 1);
+    const r = Math.round(ratio > .5 ? 255 : ratio*2*255);
+    const g = Math.round(ratio < .5 ? 255*ratio*2 : 255*(1-ratio)*2);
+    const b = Math.round(ratio < .3 ? 212*(1-ratio*3) : 0);
+    const col = `rgb(${r},${g},${b})`;
+    const bg = `rgba(${r},${g},${b},0.12)`;
+    const border = `rgba(${r},${g},${b},0.35)`;
+    return `<div class="th-cell" style="background:${bg};border-color:${border};">
+      <div class="th-node-id">${n.id}</div>
+      <div class="th-temp" style="color:${col};">${t.toFixed(1)}°</div>
+      <div class="th-bar" style="background:${col};opacity:.6;"></div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderGridMap() {
+  const svg = document.getElementById('map-svg');
+  svg.innerHTML = '';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML = `
+    <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="glow-sm"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  `;
+  svg.appendChild(defs);
+
+
+  edges.forEach(([a,b]) => {
+    const pa = nodePos[a], pb = nodePos[b];
+    const n1 = nodes[a], n2 = nodes[b];
+    const active = n1.routing || n2.routing;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', pa.x); line.setAttribute('y1', pa.y);
+    line.setAttribute('x2', pb.x); line.setAttribute('y2', pb.y);
+    line.classList.add('grid-edge');
+    if(active) {
+      line.classList.add('edge-active');
+      line.setAttribute('stroke', 'rgba(0,212,255,0.5)');
+    } else {
+      line.setAttribute('stroke', 'rgba(40,90,130,0.3)');
+    }
+    svg.appendChild(line);
+  });
+
+
+  nodes.forEach((n, i) => {
+    const p = nodePos[i];
+    const col = n.temp > 52 ? 'var(--red)' : n.temp > 42 ? 'var(--amber)' : NODE_COLORS[i%NODE_COLORS.length];
+    const outerR = 18 + n.load * 10;
+
+    const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y);
+    ring.setAttribute('r', outerR);
+    ring.classList.add('grid-node-outer');
+    ring.setAttribute('stroke', col);
+    ring.setAttribute('opacity', '0.2');
+    svg.appendChild(ring);
+
+
+    const circ = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circ.setAttribute('cx', p.x); circ.setAttribute('cy', p.y);
+    circ.setAttribute('r', 14);
+    circ.classList.add('grid-node-inner');
+    circ.setAttribute('fill', `rgba(${col==='var(--cyan)'?'0,212,255':col==='var(--red)'?'255,61,90':col==='var(--amber)'?'255,184,48':'0,255,136'},0.08)`);
+    circ.setAttribute('stroke', col);
+    circ.setAttribute('stroke-width', n.routing ? '2' : '1');
+    circ.setAttribute('filter', 'url(#glow-sm)');
+    svg.appendChild(circ);
+
+
+    if(n.routing) {
+      const rd = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      rd.setAttribute('cx', p.x); rd.setAttribute('cy', p.y);
+      rd.setAttribute('r', 5);
+      rd.setAttribute('fill', 'var(--cyan)');
+      rd.setAttribute('filter', 'url(#glow)');
+      svg.appendChild(rd);
+    }
+
+
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x', p.x); lbl.setAttribute('y', p.y + 26);
+    lbl.classList.add('node-label-svg');
+    lbl.textContent = n.id;
+    svg.appendChild(lbl);
+
+
+    const val = document.createElementNS('http://www.w3.org/2000/svg','text');
+    val.setAttribute('x', p.x); val.setAttribute('y', p.y + 4);
+    val.classList.add('node-val-svg');
+    val.setAttribute('fill', col);
+    val.textContent = (n.load*100).toFixed(0)+'%';
+    svg.appendChild(val);
+  });
+
+  const cl = document.createElementNS('http://www.w3.org/2000/svg','text');
+  cl.setAttribute('x', cx); cl.setAttribute('y', cy+4);
+  cl.setAttribute('text-anchor','middle');
+  cl.setAttribute('font-family','Fira Code, monospace');
+  cl.setAttribute('font-size','8');
+  cl.setAttribute('fill','rgba(0,212,255,0.25)');
+  cl.textContent = 'QUANTUM CORE';
+  svg.appendChild(cl);
+}
+
+
+const CHART_COLORS = ['#00d4ff','#00ff88','#ffb830','#ff3d5a','#a78bfa','#4af0c8','#ffd460','#ff8888'];
+
+function renderDemandChart() {
+  const svg = document.getElementById('demand-svg');
+  svg.innerHTML = '';
+  const W=320, H=140, pad=8;
+
+  [.25,.5,.75,1].forEach(v => {
+    const y = H - pad - (H-pad*2)*v;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',pad); line.setAttribute('y1',y);
+    line.setAttribute('x2',W-pad); line.setAttribute('y2',y);
+    line.setAttribute('stroke','rgba(40,90,130,0.15)'); line.setAttribute('stroke-width','0.5');
+    svg.appendChild(line);
+  });
+
+
+  const stepW = (W-pad*2) / (HIST-1);
+  nodes.forEach((n,ni) => {
+    const hist = demandHistory[ni];
+    const pts = hist.map((v,t) => `${pad+t*stepW},${H-pad-(H-pad*2)*v}`).join(' ');
+    const pl = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    pl.setAttribute('points', pts);
+    pl.setAttribute('fill','none');
+    pl.setAttribute('stroke', CHART_COLORS[ni%CHART_COLORS.length]);
+    pl.setAttribute('stroke-width', ni===0||ni===4 ? '1.5' : '0.75');
+    pl.setAttribute('opacity', ni < 3 ? '0.9' : '0.45');
+    svg.appendChild(pl);
+  });
+
+
+  const lastVal = demandHistory[0][HIST-1];
+  const forecastPts = Array.from({length:12},(_,i)=>{
+    const x = pad+(HIST-1+i)*stepW;
+    const y = H-pad-(H-pad*2)*Math.min(1,lastVal + (spikeActive && spikeNodes.includes(0) ? 0.04*i : 0.005*i));
+    return `${x},${y}`;
+  }).join(' ');
+  const fpl = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  fpl.setAttribute('points', forecastPts);
+  fpl.setAttribute('fill','none');
+  fpl.setAttribute('stroke','rgba(0,212,255,0.5)');
+  fpl.setAttribute('stroke-width','1');
+  fpl.setAttribute('stroke-dasharray','4 3');
+  svg.appendChild(fpl);
+}
+
+function renderDemandLegend() {
+  const el = document.getElementById('demand-legend');
+  el.innerHTML = nodes.slice(0,6).map((n,i) =>
+    `<div class="legend-item">
+      <div class="legend-dot" style="background:${CHART_COLORS[i]};"></div>
+      <span>${n.id}</span>
+    </div>`
+  ).join('') + `<div class="legend-item" style="margin-left:auto;"><span style="color:rgba(0,212,255,0.5);">--- LSTM Forecast</span></div>`;
+}
+
+
+function renderQUBO() {
+  const el = document.getElementById('qubo-matrix');
+  el.innerHTML = '';
+  for(let i=0;i<N;i++) for(let j=0;j<N;j++) {
+    const cell = document.createElement('div');
+    cell.className = 'q-cell';
+    let v;
+    if(i===j) v = -(nodes[i].load * 0.8 + 0.1);
+    else v = nodes[i].load * nodes[j].load * (1/(1+Math.abs(i-j))) * 0.4;
+    const intensity = Math.abs(v);
+    const isNeg = v < 0;
+    const r = isNeg ? 0 : Math.round(255*intensity*1.5);
+    const g = isNeg ? Math.round(200*intensity*1.5) : Math.round(100*intensity);
+    const b = isNeg ? Math.round(255*intensity*1.5) : 0;
+    cell.style.background = `rgba(${r},${g},${b},${Math.min(0.9, intensity*2)})`;
+    el.appendChild(cell);
+  }
+}
+
+function renderQAOABars() {
+  const el = document.getElementById('qaoa-bars');
+  const params = [
+    {label:'γ₁', val:.72+Math.random()*.1, col:'var(--cyan)'},
+    {label:'β₁', val:.81+Math.random()*.08, col:'var(--green)'},
+    {label:'γ₂', val:.45+Math.random()*.1, col:'var(--cyan)'},
+    {label:'β₂', val:.63+Math.random()*.08, col:'var(--green)'},
+    {label:'⟨H⟩', val:Math.abs(nodes.reduce((s,n)=>s+n.load,0)/N - .1), col:'var(--amber)'},
+  ];
+  el.innerHTML = params.map(p=>`
+    <div class="qaoa-bar-row">
+      <div class="qaoa-bar-label">${p.label}</div>
+      <div class="qaoa-bar-track"><div class="qaoa-bar-fill" style="width:${p.val*100}%;background:${p.col};"></div></div>
+      <div class="qaoa-bar-val">${p.val.toFixed(2)}</div>
+    </div>
+  `).join('');
+  document.getElementById('qaoa-status').textContent =
+    `γ=${params[0].val.toFixed(2)} β=${params[1].val.toFixed(2)} · iter ${120+Math.round(Math.random()*30)}`;
+}
+
+
+const logPool = [
+  ['cyan',  'QAOA variational circuit updated — depth p=2'],
+  ['green', 'Optimal routing dispatched: N-03 ← thermal headroom max'],
+  [null,    'Sensor batch received: 8 nodes @ 100ms'],
+  ['cyan',  'QUBO matrix encoded — 8 variables, 28 off-diagonal terms'],
+  ['green', 'Demand prediction complete: T+6 horizon, RMSE 0.032'],
+  [null,    'Digital twin state synchronized'],
+  ['amber', 'N-05 temperature approaching threshold (44.2°C)'],
+  ['cyan',  '⟨H⟩ expectation value converged: −2.84'],
+  ['green', 'Thermal violation avoided via preemptive reroute'],
+  [null,    'Loop cycle complete: 11ms total latency'],
+  ['cyan',  'QAOA sampling complete: 1024 shots'],
+  [null,    'Demand buffer updated: 60-step sliding window'],
+];
+let logIdx = 0;
+
+function addLog(type, msg) {
+  const el = document.getElementById('event-log');
+  const now = new Date();
+  const ts = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg ${type||''}">${msg}</span>`;
+  el.appendChild(entry);
+  if(el.children.length > 30) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function autoLog() {
+  const [type, msg] = logPool[logIdx % logPool.length];
+  logIdx++;
+  addLog(type, msg);
+}
+
+
+function injectSpike() {
+  if(spikeActive) return;
+  spikeNodes = [0,4,5];
+  spikeActive = true;
+  spikeTimer = 20;
+  addLog('red', '⚡ AI workload burst injected → N-00, N-04, N-05');
+  addLog('amber', 'Spike detector: 3 nodes exceeding forecast threshold');
+  document.getElementById('top-warn-pill').textContent = '⚠ SPIKE DETECTED';
+}
+
+
+function tick() {
+  if(spikeActive) {
+    spikeTimer--;
+    if(spikeTimer <= 0) {
+      spikeActive = false;
+      spikeNodes = [];
+      document.getElementById('top-warn-pill').textContent = '⚠ NODE_05 WARM';
+      addLog('green', 'Spike resolved — quantum optimizer rerouted successfully');
+    }
+  }
+
+  nodes = nodes.map((n, i) => {
+    let load = n.load;
+    const isSpike = spikeActive && spikeNodes.includes(i);
+    if(isSpike) load = Math.min(1, load + .05 + Math.random()*.03);
+    else load += (Math.random()-.5)*.04;
+    load = Math.max(.05, Math.min(1, load));
+
+    let temp = n.temp;
+    temp += (load - .4) * .8 + (Math.random()-.5)*.6;
+    temp = Math.max(22, Math.min(72, temp));
+
+    const routing = load > .75 ? 1 : 0;
+    return { ...n, load, temp, routing };
+  });
+
+  nodes.forEach((n,i) => {
+    demandHistory[i].shift();
+    demandHistory[i].push(n.load + (Math.random()-.5)*.02);
+  });
+
+  const avgLoad = nodes.reduce((s,n)=>s+n.load,0)/N;
+  const eff = Math.max(88, Math.min(99.9, 100 - avgLoad*12 + Math.random()*1.5)).toFixed(1);
+  document.getElementById('eff-val').textContent = eff;
+  document.getElementById('stat3') && (document.getElementById('stat3').textContent = eff);
+  document.getElementById('loop-lat').innerHTML = `${8+Math.round(Math.random()*8)}<span style="font-size:10px;color:var(--cyan)">ms</span>`;
+  document.getElementById('qubo-e').textContent = (-(2.5+Math.random()*.6)).toFixed(2);
+
+  renderSidebarNodes();
+  renderNodeRows();
+  renderThermal();
+  renderGridMap();
+  renderDemandChart();
+  renderQUBO();
+  renderQAOABars();
+}
+
+
+renderDemandLegend();
+tick();
+
+
+setTimeout(()=>addLog('cyan','QuantumGrid system initializing...'),200);
+setTimeout(()=>addLog(null,'FastAPI backend online · WebSocket active'),600);
+setTimeout(()=>addLog('cyan','Qiskit Aer simulator loaded · statevector mode'),1000);
+setTimeout(()=>addLog('green','LSTM demand model loaded · 8-node, horizon=6'),1400);
+setTimeout(()=>addLog('green','Digital twin synchronized · mesh topology · 8N 14E'),1800);
+setTimeout(()=>addLog('cyan','QAOA optimizer ready · reps=2 · COBYLA optimizer'),2200);
+setTimeout(()=>addLog(null,'Control loop started · interval 2.0s'),2600);
+
+
+setInterval(tick, 1400);
+setInterval(autoLog, 2200);
+</script>
+</body>
+</html>
