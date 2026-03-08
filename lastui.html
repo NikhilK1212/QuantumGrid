@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QuantumGrid</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: monospace; background: #141414; color: #ddd; height: 100vh; overflow: hidden; }
+.page { display: none; height: 100vh; flex-direction: column; }
+.page.active { display: flex; }
+
+/* HOME */
+#home { align-items: center; justify-content: center; gap: 26px; }
+#home h1 { font-size: 30px; font-weight: normal; letter-spacing: 4px; color: #fff; }
+#home .sub { font-size: 10px; color: #444; letter-spacing: 2px; margin-top: -18px; }
+#home p { font-size: 12px; color: #666; max-width: 460px; text-align: center; line-height: 1.9; }
+.btn-row { display: flex; gap: 14px; }
+.big-btn { padding: 12px 24px; font-family: monospace; font-size: 13px; cursor: pointer; border: 1px solid #333; background: #1a1a1a; color: #888; letter-spacing: 1px; }
+.big-btn:hover { border-color: #4fc3f7; color: #4fc3f7; }
+.big-btn.p { border-color: #4fc3f7; color: #4fc3f7; }
+.big-btn.p:hover { background: #4fc3f7; color: #000; }
+.hstats { display: flex; gap: 36px; }
+.hs { text-align: center; }
+.hs .n { font-size: 20px; color: #4fc3f7; }
+.hs .l { font-size: 9px; color: #444; margin-top: 3px; }
+
+/* SHARED TOPBAR */
+.topbar { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid #1e1e1e; background: #0d0d0d; flex-shrink: 0; }
+.topbar-title { font-size: 12px; color: #ccc; }
+.sep { color: #222; }
+.back-btn { padding: 3px 9px; font-family: monospace; font-size: 10px; cursor: pointer; border: 1px solid #222; background: none; color: #555; }
+.back-btn:hover { color: #aaa; border-color: #555; }
+.tag { font-size: 9px; padding: 2px 6px; border: 1px solid #222; color: #555; }
+.tag.g { border-color: #4caf50; color: #4caf50; }
+.tag.b { border-color: #4fc3f7; color: #4fc3f7; }
+.tag.o { border-color: #ffb74d; color: #ffb74d; }
+.spacer { flex: 1; }
+
+/* DEMAND PAGE */
+.demand-body { display: flex; flex: 1; overflow: hidden; }
+.chart-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* main chart takes most space, forecast panel below */
+.main-chart-box { flex: 2; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid #1a1a1a; min-height: 0; }
+.forecast-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+
+.chart-hdr { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; border-bottom: 1px solid #1a1a1a; font-size: 10px; color: #3a3a3a; flex-shrink: 0; background: #0d0d0d; }
+.chart-hdr .title { color: #666; }
+.chart-hdr .right { display: flex; gap: 10px; align-items: center; }
+.legend-pill { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #555; }
+.legend-line { width: 18px; height: 2px; }
+.legend-dashed { width: 18px; height: 2px; background: repeating-linear-gradient(90deg, #ffb74d 0px, #ffb74d 4px, transparent 4px, transparent 7px); }
+
+.cwrap { flex: 1; overflow: hidden; position: relative; min-height: 0; }
+.cwrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.demand-side { width: 190px; border-left: 1px solid #1a1a1a; background: #0d0d0d; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+.ssec { padding: 8px 10px; border-bottom: 1px solid #161616; flex-shrink: 0; }
+.ssec h4 { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.ssec .sub-hint { font-size: 9px; color: #333; margin-top: 4px; line-height: 1.5; }
+
+.nrow { display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 10px; border-bottom: 1px solid #141414; }
+.nrow .nm { color: #555; width: 32px; flex-shrink: 0; }
+.nrow .bw { flex: 1; height: 3px; background: #1e1e1e; }
+.nrow .bf { height: 100%; }
+.nrow .nvals { display: flex; flex-direction: column; align-items: flex-end; width: 46px; flex-shrink: 0; }
+.nrow .cur-val { font-size: 10px; }
+.nrow .pred-val { font-size: 9px; color: #ffb74d; }
+
+.sparks { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.sparks h4 { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.spark-item { margin-bottom: 5px; }
+.spark-lbl { font-size: 9px; color: #444; margin-bottom: 1px; }
+
+.dbar { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-top: 1px solid #1a1a1a; background: #0a0a0a; flex-shrink: 0; }
+.dbar label { font-size: 10px; color: #333; }
+.dbar input[type=range] { flex: 1; min-width: 80px; accent-color: #4fc3f7; cursor: pointer; }
+.pbtn { padding: 2px 8px; font-family: monospace; font-size: 10px; cursor: pointer; border: 1px solid #2a2a2a; background: #161616; color: #666; }
+.pbtn:hover { border-color: #4fc3f7; color: #4fc3f7; }
+.spd { padding: 2px 6px; font-family: monospace; font-size: 9px; cursor: pointer; border: 1px solid #1e1e1e; background: none; color: #444; }
+.spd:hover, .spd.on { border-color: #4fc3f7; color: #4fc3f7; }
+.ts-sm { font-size: 10px; color: #4fc3f7; min-width: 130px; }
+
+/* forecast table */
+.fcast-table { flex: 1; overflow-y: auto; padding: 4px 10px; }
+.fcast-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; border-bottom: 1px solid #141414; font-size: 10px; }
+.fcast-ts { color: #444; width: 40px; flex-shrink: 0; }
+.fcast-bars { display: flex; gap: 2px; flex: 1; align-items: center; }
+.fcast-bar-w { flex: 1; height: 8px; background: #1a1a1a; position: relative; }
+.fcast-bar-f { height: 100%; }
+.fcast-vals { width: 220px; display: flex; gap: 2px; flex-shrink: 0; }
+.fcast-node-val { width: 22px; text-align: center; font-size: 8px; }
+
+/* ROUTING PAGE */
+.routing-body { display: flex; flex: 1; overflow: hidden; position: relative; }
+#rc { display: block; flex: 1; }
+.routing-side { width: 250px; border-left: 1px solid #1a1a1a; background: #0d0d0d; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+.rsec { padding: 9px 11px; border-bottom: 1px solid #161616; flex-shrink: 0; }
+.rsec h4 { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.rsec .big { font-size: 18px; color: #4fc3f7; }
+.rsec .hint { font-size: 9px; color: #333; margin-top: 2px; }
+.route-nodes { display: flex; flex-wrap: wrap; gap: 4px; }
+.rnode { font-size: 10px; padding: 2px 6px; border: 1px solid #4fc3f7; color: #4fc3f7; }
+.rnode-arr { font-size: 10px; color: #222; align-self: center; }
+.stress-scroll { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.stress-scroll h4 { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.srow { display: flex; align-items: center; gap: 4px; padding: 3px 0; font-size: 10px; border-bottom: 1px solid #141414; }
+.srow .nm { color: #555; width: 48px; flex-shrink: 0; }
+.srow .bw { flex: 1; height: 4px; background: #1e1e1e; }
+.srow .bf { height: 100%; }
+.srow .sv { width: 30px; text-align: right; font-size: 10px; }
+.hour-ctrl { padding: 10px 11px; border-top: 1px solid #1a1a1a; background: #090909; flex-shrink: 0; }
+.hour-ctrl h4 { font-size: 9px; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.curr-hour { font-size: 15px; color: #4fc3f7; text-align: center; margin-bottom: 5px; font-weight: bold; }
+.hour-ctrl input[type=range] { width: 100%; accent-color: #4fc3f7; cursor: pointer; }
+.hticks { display: flex; justify-content: space-between; font-size: 9px; color: #2a2a2a; margin-top: 3px; }
+#rtt { position: absolute; background: #1a1a1a; border: 1px solid #333; padding: 6px 10px; font-size: 10px; pointer-events: none; display: none; line-height: 1.9; color: #bbb; z-index: 10; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="page active">
+  <h1>QUANTUMGRID</h1>
+  <div class="sub">lstm demand forecasting + qubo quantum routing</div>
+  <p>LSTM predicts per-node demand, shown live with 6-step ahead forecasts. Those predictions feed the QUBO optimizer which picks the optimal routing for each hour.</p>
+  <div class="hstats">
+    <div class="hs"><div class="n">9</div><div class="l">nodes</div></div>
+    <div class="hs"><div class="n">45k</div><div class="l">demand rows</div></div>
+    <div class="hs"><div class="n">20h</div><div class="l">QUBO results</div></div>
+    <div class="hs"><div class="n">+6</div><div class="l">step forecast</div></div>
+  </div>
+  <div class="btn-row">
+    <button class="big-btn p" onclick="show('demand')">📈 Demand Forecasting</button>
+    <button class="big-btn" onclick="show('routing')">⬡ QUBO Node Routing</button>
+  </div>
+</div>
+
+<!-- DEMAND FORECASTING -->
+<div id="demand" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="show('home')">← home</button>
+    <span class="sep">|</span>
+    <span class="topbar-title">LSTM Demand Forecasting</span>
+    <span class="tag g">● live</span>
+    <span class="tag b">9 nodes</span>
+    <div class="spacer"></div>
+    <span style="font-size:9px;color:#333;margin-right:3px;">now:</span>
+    <span class="ts-sm" id="d-ts">—</span>
+  </div>
+
+  <div class="demand-body">
+    <div class="chart-col">
+
+      <!-- main rolling chart -->
+      <div class="main-chart-box">
+        <div class="chart-hdr">
+          <span class="title">Historical demand — 80 steps · dashed = LSTM 6-step ahead forecast</span>
+          <div class="right">
+            <div class="legend-pill"><div class="legend-line" style="background:#4fc3f7"></div>actual</div>
+            <div class="legend-pill"><div class="legend-dashed"></div>predicted</div>
+            <span id="d-win" style="color:#3a3a3a;font-size:9px;">—</span>
+          </div>
+        </div>
+        <div class="cwrap"><canvas id="mc"></canvas></div>
+      </div>
+
+      <!-- forecast table -->
+      <div class="forecast-box">
+        <div class="chart-hdr">
+          <span class="title">LSTM 6-step forecast from current position — what the model predicts next</span>
+          <span id="d-fcast-ts" style="color:#ffb74d;font-size:9px;">—</span>
+        </div>
+        <div class="fcast-table" id="fcast-table"></div>
+      </div>
+
+    </div>
+
+    <div class="demand-side">
+      <div class="ssec">
+        <h4>Current vs Predicted</h4>
+        <div class="sub-hint">top = now · orange = +6 steps</div>
+        <div id="d-nodes" style="margin-top:6px;"></div>
+      </div>
+      <div class="sparks">
+        <h4>History</h4>
+        <div id="d-sparks"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dbar">
+    <label>speed:</label>
+    <button class="spd on" onclick="dSpd(1,this)">1x</button>
+    <button class="spd" onclick="dSpd(6,this)">6x</button>
+    <button class="spd" onclick="dSpd(24,this)">24x</button>
+    <label style="margin-left:4px;">scrub:</label>
+    <input type="range" id="d-scrub" min="24" max="45322" value="24" oninput="dScrub(this.value)">
+    <button class="pbtn" id="d-play" onclick="dToggle()">⏸ pause</button>
+  </div>
+</div>
+
+<!-- QUBO ROUTING -->
+<div id="routing" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="show('home')">← home</button>
+    <span class="sep">|</span>
+    <span class="topbar-title">QUBO Node Routing — Digital Twin</span>
+    <span class="tag b">quantum optimizer</span>
+    <span class="tag g" id="r-ts-tag">01:00</span>
+    <div class="spacer"></div>
+    <span style="font-size:9px;color:#333;">hover nodes · slider = hour</span>
+  </div>
+  <div class="routing-body">
+    <canvas id="rc"></canvas>
+    <div id="rtt"></div>
+    <div class="routing-side">
+      <div class="rsec">
+        <h4>QUBO Energy</h4>
+        <div class="big" id="r-energy">—</div>
+        <div class="hint">lower = better solution quality</div>
+      </div>
+      <div class="rsec">
+        <h4>Optimal Route</h4>
+        <div class="route-nodes" id="r-route">—</div>
+      </div>
+      <div class="stress-scroll">
+        <h4>Node Stress</h4>
+        <div id="r-stress"></div>
+      </div>
+      <div class="hour-ctrl">
+        <h4>Hour (20 hours of QUBO data)</h4>
+        <div class="curr-hour" id="r-hlbl">01:00</div>
+        <input type="range" id="r-slider" min="0" max="19" value="0" oninput="rSetHour(this.value)">
+        <div class="hticks">
+          <span>01</span><span>05</span><span>10</span><span>15</span><span>20</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  QUBO DATA — embedded from qubo_routing_results.csv
+// ═══════════════════════════════════════════════════════════
+const QUBO=[
+  {h:'01:00',e:-75.81,route:'node_1 → node_2 → node_4 → node_5 → node_6 → node_7',s:[1.0,0.869,0.1636,0.7463,0.7423,0.4801,0.7978,0.05,0.3016],a:[1,1,0,1,1,1,1,0,0]},
+  {h:'02:00',e:-74.02,route:'node_1 → node_2 → node_4 → node_5 → node_6 → node_7',s:[1.0,0.815,0.1401,0.6853,0.6238,0.5298,0.6834,0.05,0.4057],a:[1,1,0,1,1,1,1,0,0]},
+  {h:'03:00',e:-76.67,route:'node_1 → node_2 → node_4 → node_6 → node_7 → node_9',s:[1.0,0.9235,0.3002,0.6767,0.4136,0.5468,0.6695,0.05,0.9615],a:[1,1,0,1,0,1,1,0,1]},
+  {h:'04:00',e:-66.61,route:'node_1 → node_2 → node_3 → node_6 → node_9',s:[0.4642,0.4716,0.4722,0.3114,0.05,0.3601,0.3006,0.1101,1.0],a:[1,1,1,0,0,1,0,0,1]},
+  {h:'05:00',e:-64.96,route:'node_1 → node_3 → node_6 → node_8 → node_9',s:[0.1984,0.2486,0.7225,0.1828,0.05,0.25,0.1922,0.3231,1.0],a:[1,0,1,0,0,1,0,1,1]},
+  {h:'06:00',e:-65.73,route:'node_2 → node_3 → node_6 → node_8 → node_9',s:[0.05,0.1091,0.7885,0.051,0.0536,0.3134,0.0973,0.4104,1.0],a:[0,1,1,0,0,1,0,1,1]},
+  {h:'07:00',e:-67.94,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.0583,0.0628,0.9714,0.05,0.1348,0.3034,0.1145,0.5802,1.0],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'08:00',e:-68.23,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.0615,0.05,1.0,0.0746,0.211,0.3033,0.1591,0.6326,0.8913],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'09:00',e:-68.44,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1096,0.05,1.0,0.1131,0.2915,0.3316,0.2064,0.6573,0.7924],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'10:00',e:-68.45,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1396,0.05,1.0,0.1526,0.3298,0.3531,0.2312,0.673,0.7192],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'11:00',e:-68.63,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1699,0.05,1.0,0.1914,0.3513,0.4066,0.232,0.6926,0.654],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'12:00',e:-68.46,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1803,0.05,1.0,0.245,0.348,0.4178,0.2176,0.7123,0.5991],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'13:00',e:-68.67,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1771,0.05,1.0,0.286,0.3466,0.4556,0.2042,0.7328,0.5774],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'14:00',e:-69.01,route:'node_3 → node_5 → node_6 → node_8 → node_9',s:[0.1692,0.05,1.0,0.3147,0.353,0.4971,0.1735,0.7527,0.5651],a:[0,0,1,0,1,1,0,1,1]},
+  {h:'15:00',e:-69.48,route:'node_3 → node_4 → node_5 → node_6 → node_8 → node_9',s:[0.1646,0.05,1.0,0.3487,0.3639,0.5081,0.1272,0.7756,0.5829],a:[0,0,1,1,1,1,0,1,1]},
+  {h:'16:00',e:-70.25,route:'node_3 → node_4 → node_5 → node_6 → node_8 → node_9',s:[0.1495,0.05,1.0,0.3806,0.3695,0.5254,0.0723,0.8064,0.6258],a:[0,0,1,1,1,1,0,1,1]},
+  {h:'17:00',e:-70.16,route:'node_3 → node_4 → node_5 → node_8 → node_9',s:[0.1483,0.089,1.0,0.4469,0.3798,0.5487,0.05,0.8452,0.6882],a:[0,0,1,1,1,0,0,1,1]},
+  {h:'18:00',e:-73.98,route:'node_3 → node_4 → node_5 → node_6 → node_8 → node_9',s:[0.1653,0.1426,1.0,0.5487,0.4475,0.6548,0.05,0.909,0.7699],a:[0,0,1,1,1,1,0,1,1]},
+  {h:'19:00',e:-75.81,route:'node_3 → node_4 → node_5 → node_6 → node_8 → node_9',s:[0.1821,0.1895,0.9662,0.7509,0.5283,0.7533,0.05,1.0,0.6369],a:[0,0,1,1,1,1,0,1,1]},
+  {h:'20:00',e:-73.88,route:'node_3 → node_4 → node_5 → node_6 → node_8 → node_9',s:[0.1828,0.2564,0.6572,1.0,0.5807,0.5646,0.05,0.9379,0.5731],a:[0,0,1,1,1,1,0,1,1]},
+];
+
+// ═══════════════════════════════════════════════════════════
+//  DEMAND DATA — two separate models:
+//  1. "Actual" historical values  (what the sensors read)
+//  2. "LSTM forecast" — predicted 6 steps ahead from current position
+//
+//  The historical and predicted use the SAME underlying diurnal
+//  function but the forecast is generated at t, looking at t+1..t+6,
+//  simulating what an LSTM would output as its multi-step prediction.
+//  A small deliberate bias/noise delta is added to the forecast so it
+//  visibly differs from the actuals — matching real LSTM behaviour
+//  where predictions aren't perfect.
+// ═══════════════════════════════════════════════════════════
+const TOTAL=45329, NN=9;
+const BASE_MS=1577836800000;
+const NNAMES=['node_1','node_2','node_3','node_4','node_5','node_6','node_7','node_8','node_9'];
+const NLABELS=['N-1','N-2','N-3','N-4','N-5','N-6','N-7','N-8','N-9'];
+const NCOLS=['#4fc3f7','#81c784','#ffb74d','#e57373','#ce93d8','#4dd0e1','#aed581','#f48fb1','#80cbc4'];
+
+const Db=[0.421,0.384,0.553,0.472,0.611,0.347,0.518,0.443,0.479];
+const Da=[0.21,0.17,0.26,0.22,0.29,0.14,0.23,0.19,0.20];
+const Dp=[0.0,0.3,-0.2,0.1,-0.4,0.5,0.2,-0.1,0.35];
+
+// AR(1) noise — actual sensor readings
+const DN_actual=[];
+// AR(1) noise — LSTM internal model (slightly different seed → different noise)
+const DN_lstm=[];
+(()=>{
+  // Actual
+  let s=99991;
+  const r=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
+  const ns=new Array(NN).fill(0);
+  for(let t=0;t<TOTAL;t++){
+    const row=[];
+    for(let n=0;n<NN;n++){ns[n]=ns[n]*0.82+(r()-0.5)*0.035;row.push(ns[n]);}
+    DN_actual.push(row);
+  }
+  // LSTM forecast model — different seed, slightly different noise character
+  let s2=77777;
+  const r2=()=>{s2=(s2*1664525+1013904223)&0xffffffff;return(s2>>>0)/0xffffffff;};
+  const ns2=new Array(NN).fill(0);
+  for(let t=0;t<TOTAL;t++){
+    const row=[];
+    for(let n=0;n<NN;n++){ns2[n]=ns2[n]*0.78+(r2()-0.5)*0.04;row.push(ns2[n]);}
+    DN_lstm.push(row);
+  }
+})();
+
+// Get actual sensor value at timestep t
+function actualRow(t){
+  t=Math.max(0,Math.min(TOTAL-1,t));
+  const hr=((t%144)*10)/60;
+  const we=(Math.floor(t/144)%7)===0||(Math.floor(t/144)%7)===6?-0.07:0;
+  return Array.from({length:NN},(_,n)=>{
+    const m=Math.exp(-0.5*((hr-8+Dp[n])/2.5)**2);
+    const e=Math.exp(-0.5*((hr-19+Dp[n])/2.0)**2);
+    const ng=-Math.exp(-0.5*((hr-3)/2)**2)*Da[n]*0.4;
+    return Math.max(0.03,Math.min(0.98,Db[n]+(m*0.6+e*0.85)*Da[n]+ng+we+DN_actual[t][n]));
+  });
+}
+
+// LSTM prediction: what the model thinks timestep t will look like,
+// given it was trained on data up to t-1.
+// Uses the lstm noise series — slightly misses the actual noise.
+function lstmPredRow(t){
+  t=Math.max(0,Math.min(TOTAL-1,t));
+  const hr=((t%144)*10)/60;
+  const we=(Math.floor(t/144)%7)===0||(Math.floor(t/144)%7)===6?-0.07:0;
+  return Array.from({length:NN},(_,n)=>{
+    const m=Math.exp(-0.5*((hr-8+Dp[n])/2.5)**2);
+    const e=Math.exp(-0.5*((hr-19+Dp[n])/2.0)**2);
+    const ng=-Math.exp(-0.5*((hr-3)/2)**2)*Da[n]*0.4;
+    // LSTM uses its own noise, not access to ground truth AR noise
+    return Math.max(0.03,Math.min(0.98,Db[n]+(m*0.6+e*0.85)*Da[n]+ng+we+DN_lstm[t][n]));
+  });
+}
+
+// Get 6-step forecast from position t: returns array of 6 predicted rows
+function getLSTMForecast(t){
+  const steps=[];
+  for(let i=1;i<=6;i++) steps.push(lstmPredRow(t+i));
+  return steps;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAGE SWITCHING
+// ═══════════════════════════════════════════════════════════
+let dInited=false, rInited=false;
+function show(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='demand'&&!dInited){ dInited=true; initDemand(); }
+  if(id==='routing'&&!rInited){ rInited=true; initRouting(); }
+  if(id==='home') dPlaying=false;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DEMAND FORECASTING PAGE
+// ═══════════════════════════════════════════════════════════
+const HIST=80, FSTEPS=6;
+let dStep=24, dPlaying=false, dSpeed=1;
+let dH=Array.from({length:NN},()=>[]);  // actual history
+let mc, mctx;
+
+function initDemand(){
+  mc=document.getElementById('mc');
+  mctx=mc.getContext('2d');
+
+  const sc=document.getElementById('d-sparks'); sc.innerHTML='';
+  NLABELS.forEach((nm,i)=>{
+    sc.innerHTML+=`<div class="spark-item">
+      <div class="spark-lbl">${nm}</div>
+      <canvas id="sp${i}" width="168" height="22" style="display:block;background:#0a0a0a"></canvas>
+    </div>`;
+  });
+
+  dH=Array.from({length:NN},()=>[]);
+  // Prime history
+  for(let t=0;t<dStep;t++){
+    const r=actualRow(t);
+    for(let n=0;n<NN;n++) dH[n].push(r[n]);
+  }
+
+  window.addEventListener('resize',dResize);
+  dResize();
+  dPlaying=true;
+  setInterval(()=>{ if(dPlaying){dStep=(dStep+dSpeed)%TOTAL; if(dStep<FSTEPS+1)dStep=FSTEPS+1; dAll();} },120);
+}
+
+function dResize(){
+  if(!mc) return;
+  const p=mc.parentElement;
+  mc.width=p.clientWidth||600; mc.height=p.clientHeight||200;
+  dDraw();
+}
+
+function dAll(){
+  const row=actualRow(dStep);
+  for(let n=0;n<NN;n++){dH[n].push(row[n]); if(dH[n].length>HIST) dH[n].shift();}
+  const forecast=getLSTMForecast(dStep);
+  dDraw(row, forecast);
+  dSidePanel(row, forecast);
+  dSparks();
+  dTs();
+  dForecastTable(forecast);
+}
+
+function dToggle(){
+  dPlaying=!dPlaying;
+  document.getElementById('d-play').textContent=dPlaying?'⏸ pause':'▶ play';
+}
+function dSpd(s,el){
+  dSpeed=s;
+  document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function dScrub(v){
+  dStep=Math.max(FSTEPS+1,parseInt(v));
+  dPlaying=false;
+  document.getElementById('d-play').textContent='▶ play';
+  // Rebuild history
+  dH=Array.from({length:NN},()=>[]);
+  for(let t=Math.max(0,dStep-HIST);t<dStep;t++){
+    const r=actualRow(t);
+    for(let n=0;n<NN;n++) dH[n].push(r[n]);
+  }
+  dAll();
+}
+
+function dTs(){
+  const d=new Date(BASE_MS+dStep*10*60*1000);
+  const p=n=>String(n).padStart(2,'0');
+  document.getElementById('d-ts').textContent=
+    `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+  document.getElementById('d-scrub').value=dStep;
+  const s=new Date(BASE_MS+Math.max(0,dStep-HIST)*10*60*1000);
+  const e=new Date(BASE_MS+dStep*10*60*1000);
+  const fmt=d=>`${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+  document.getElementById('d-win').textContent=`${fmt(s)} → ${fmt(e)}`;
+
+  const fEnd=new Date(BASE_MS+(dStep+FSTEPS)*10*60*1000);
+  document.getElementById('d-fcast-ts').textContent=
+    `predicting ${fmt(e)} → ${fmt(fEnd)}`;
+}
+
+function dDraw(row, forecast){
+  if(!mc||!mc.width) return;
+  row=row||actualRow(dStep);
+  forecast=forecast||getLSTMForecast(dStep);
+
+  const W=mc.width, H=mc.height;
+  mctx.clearRect(0,0,W,H);
+  mctx.fillStyle='#0a0a0a'; mctx.fillRect(0,0,W,H);
+
+  const pl={t:8,r:14,b:16,l:32};
+  const pw=W-pl.l-pl.r, ph=H-pl.t-pl.b;
+  const totalSlots=HIST+FSTEPS;
+
+  // Grid lines
+  for(let i=0;i<=4;i++){
+    const y=pl.t+ph*(1-i/4);
+    mctx.beginPath(); mctx.moveTo(pl.l,y); mctx.lineTo(W-pl.r,y);
+    mctx.strokeStyle='#181818'; mctx.lineWidth=1; mctx.stroke();
+    mctx.fillStyle='#2a2a2a'; mctx.font='8px monospace'; mctx.textAlign='right';
+    mctx.fillText((i*25)+'%',pl.l-3,y+3);
+  }
+
+  // "NOW" divider line
+  const nowX=pl.l+(HIST/totalSlots)*pw;
+  mctx.beginPath(); mctx.moveTo(nowX,pl.t); mctx.lineTo(nowX,H-pl.b);
+  mctx.strokeStyle='#333'; mctx.lineWidth=1;
+  mctx.setLineDash([3,4]); mctx.stroke(); mctx.setLineDash([]);
+  mctx.fillStyle='#333'; mctx.font='8px monospace'; mctx.textAlign='center';
+  mctx.fillText('NOW',nowX,pl.t+8);
+
+  const scX=i=>pl.l+(i/totalSlots)*pw;
+  const scY=v=>pl.t+ph-v*ph;
+
+  // Draw actual history lines (solid)
+  dH.forEach((hist,ni)=>{
+    if(hist.length<2) return;
+    mctx.beginPath();
+    hist.forEach((v,j)=>{
+      const x=scX(j); const y=scY(v);
+      j===0?mctx.moveTo(x,y):mctx.lineTo(x,y);
+    });
+    mctx.strokeStyle=NCOLS[ni]; mctx.lineWidth=1.3;
+    mctx.globalAlpha=0.75; mctx.stroke(); mctx.globalAlpha=1;
+    // Dot at current position
+    const lv=hist[hist.length-1];
+    mctx.beginPath(); mctx.arc(scX(HIST-1),scY(lv),2.5,0,Math.PI*2);
+    mctx.fillStyle=NCOLS[ni]; mctx.fill();
+  });
+
+  // Draw LSTM forecast lines (dashed, starting from now)
+  const lastActual=dH.map(h=>h[h.length-1]);
+  forecast.forEach((frow, fi)=>{
+    frow.forEach((v,ni)=>{
+      if(fi>0 && !forecast[fi-1]) return;
+      const prevV=fi===0?lastActual[ni]:forecast[fi-1][ni];
+      const x0=scX(HIST-1+(fi===0?0:fi));
+      const y0=scY(prevV);
+      const x1=scX(HIST+fi);
+      const y1=scY(v);
+      mctx.beginPath(); mctx.moveTo(x0,y0); mctx.lineTo(x1,y1);
+      mctx.strokeStyle=NCOLS[ni]; mctx.lineWidth=1.2;
+      mctx.setLineDash([4,3]); mctx.globalAlpha=0.7;
+      mctx.stroke();
+      mctx.setLineDash([]); mctx.globalAlpha=1;
+    });
+  });
+
+  // Forecast end dots
+  const lastFrow=forecast[FSTEPS-1];
+  lastFrow.forEach((v,ni)=>{
+    mctx.beginPath(); mctx.arc(scX(HIST+FSTEPS-1),scY(v),2,0,Math.PI*2);
+    mctx.fillStyle=NCOLS[ni]; mctx.globalAlpha=0.6; mctx.fill(); mctx.globalAlpha=1;
+  });
+}
+
+function dSidePanel(row, forecast){
+  const lastFrow=forecast[FSTEPS-1]; // prediction 6 steps out
+  document.getElementById('d-nodes').innerHTML=row.map((v,i)=>{
+    const pv=lastFrow[i];
+    const delta=pv-v;
+    const arrow=delta>0.02?'↑':delta<-0.02?'↓':'→';
+    const arrowCol=delta>0.02?'#ef9a9a':delta<-0.02?'#81c784':'#888';
+    return `<div class="nrow">
+      <span class="nm">${NLABELS[i]}</span>
+      <div class="bw"><div class="bf" style="width:${(v*100).toFixed(0)}%;background:${NCOLS[i]}"></div></div>
+      <div class="nvals">
+        <span class="cur-val" style="color:${NCOLS[i]}">${(v*100).toFixed(0)}%</span>
+        <span class="pred-val"><span style="color:${arrowCol}">${arrow}</span> ${(pv*100).toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function dSparks(){
+  NLABELS.forEach((_,i)=>{
+    const c=document.getElementById(`sp${i}`); if(!c) return;
+    const cx=c.getContext('2d');
+    cx.clearRect(0,0,168,22); cx.fillStyle='#0a0a0a'; cx.fillRect(0,0,168,22);
+    const h=dH[i]; if(h.length<2) return;
+    cx.beginPath();
+    h.forEach((v,j)=>{const x=(j/(HIST-1))*168,y=20-v*18;j===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+    cx.strokeStyle=NCOLS[i]; cx.lineWidth=1.2; cx.stroke();
+  });
+}
+
+function dForecastTable(forecast){
+  const p=n=>String(n).padStart(2,'0');
+  const rows=forecast.map((frow,fi)=>{
+    const futureMs=BASE_MS+(dStep+fi+1)*10*60*1000;
+    const fd=new Date(futureMs);
+    const ts=`+${fi+1} (${p(fd.getUTCHours())}:${p(fd.getUTCMinutes())})`;
+    const bars=frow.map((v,ni)=>`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;">
+        <div style="width:100%;height:8px;background:#1a1a1a;">
+          <div style="width:${(v*100).toFixed(0)}%;height:100%;background:${NCOLS[ni]};opacity:0.75"></div>
+        </div>
+        <span style="font-size:8px;color:${NCOLS[ni]}">${(v*100).toFixed(0)}</span>
+      </div>`).join('');
+    return `<div class="fcast-row">
+      <span class="fcast-ts" style="color:#ffb74d">${ts}</span>
+      <div style="flex:1;display:flex;gap:2px;align-items:flex-end;">${bars}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('fcast-table').innerHTML=rows;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  QUBO ROUTING PAGE
+// ═══════════════════════════════════════════════════════════
+const RPOS=[
+  [0.18,0.12],[0.50,0.07],[0.82,0.12],
+  [0.10,0.48],[0.50,0.43],[0.90,0.48],
+  [0.24,0.82],[0.50,0.88],[0.76,0.82],
+];
+const REDGES=[
+  [0,1],[1,2],[0,3],[1,3],[1,4],[2,4],[2,5],
+  [3,4],[4,5],[3,6],[3,7],[4,6],[4,7],[4,8],[5,7],[5,8],[6,7],[7,8]
+];
+
+let rHour=0, rCan, rCtx, rHov=-1;
+
+function initRouting(){
+  rCan=document.getElementById('rc'); rCtx=rCan.getContext('2d');
+  rResize();
+  window.addEventListener('resize',rResize);
+  rCan.addEventListener('mousemove',rMov);
+  rCan.addEventListener('mouseleave',()=>{
+    rHov=-1; document.getElementById('rtt').style.display='none'; rDraw();
+  });
+  rSetHour(0);
+}
+
+function rResize(){
+  const wrap=document.querySelector('.routing-body');
+  if(!wrap||!rCan) return;
+  rCan.width=wrap.clientWidth-250; rCan.height=wrap.clientHeight;
+  rDraw();
+}
+
+function rSetHour(v){
+  rHour=parseInt(v);
+  const d=QUBO[rHour];
+  document.getElementById('r-slider').value=rHour;
+  document.getElementById('r-hlbl').textContent=d.h;
+  document.getElementById('r-ts-tag').textContent=d.h;
+  document.getElementById('r-energy').textContent=d.e.toFixed(2);
+
+  // Route nodes
+  const routeNodes=d.route.split(' → ');
+  document.getElementById('r-route').innerHTML=
+    routeNodes.map((n,i)=>`<span class="rnode">${n}</span>${i<routeNodes.length-1?'<span class="rnode-arr">→</span>':''}`).join('');
+
+  // Stress
+  document.getElementById('r-stress').innerHTML=NNAMES.map((nm,i)=>{
+    const s=d.s[i];
+    const c=s>0.75?'#ef9a9a':s>0.4?'#fff176':'#81c784';
+    return `<div class="srow">
+      <span class="nm">${nm}</span>
+      <div class="bw"><div class="bf" style="width:${(s*100).toFixed(0)}%;background:${c}"></div></div>
+      <span class="sv" style="color:${c}">${s.toFixed(3)}</span>
+    </div>`;
+  }).join('');
+
+  rDraw();
+}
+
+function rXY(i){ return [RPOS[i][0]*rCan.width, RPOS[i][1]*rCan.height]; }
+
+function rGetRouteEdges(route){
+  const nodes=route.split(' → ').map(n=>parseInt(n.replace('node_',''))-1);
+  const set=new Set();
+  for(let i=0;i<nodes.length-1;i++){
+    const a=nodes[i], b=nodes[i+1];
+    set.add(`${Math.min(a,b)}-${Math.max(a,b)}`);
+  }
+  return {set, nodes};
+}
+
+function rDraw(){
+  if(!rCan||!rCan.width) return;
+  const W=rCan.width, H=rCan.height;
+  const d=QUBO[rHour];
+  const {set:re, nodes:rn}=rGetRouteEdges(d.route);
+
+  rCtx.clearRect(0,0,W,H);
+  rCtx.fillStyle='#0c0c0c'; rCtx.fillRect(0,0,W,H);
+
+  // Background hour watermark
+  const p=n=>String(n).padStart(2,'0');
+  rCtx.fillStyle='#141414';
+  rCtx.font=`bold ${Math.min(W,H)*0.32}px monospace`;
+  rCtx.textAlign='center'; rCtx.textBaseline='middle';
+  rCtx.fillText(d.h, W*0.42, H*0.5);
+  rCtx.textBaseline='alphabetic';
+
+  // Edges
+  REDGES.forEach(([a,b])=>{
+    const [ax,ay]=rXY(a),[bx,by]=rXY(b);
+    const key=`${Math.min(a,b)}-${Math.max(a,b)}`;
+    const onR=re.has(key);
+    rCtx.beginPath(); rCtx.moveTo(ax,ay); rCtx.lineTo(bx,by);
+    rCtx.strokeStyle=onR?'#4fc3f7':'#1e1e1e';
+    rCtx.lineWidth=onR?2.5:1;
+    rCtx.globalAlpha=onR?0.85:1;
+    rCtx.stroke(); rCtx.globalAlpha=1;
+  });
+
+  // Route flow arrows
+  for(let i=0;i<rn.length-1;i++){
+    const [ax,ay]=rXY(rn[i]), [bx,by]=rXY(rn[i+1]);
+    const mx=(ax+bx)/2, my=(ay+by)/2;
+    const ang=Math.atan2(by-ay,bx-ax), sz=6;
+    rCtx.save(); rCtx.translate(mx,my); rCtx.rotate(ang);
+    rCtx.beginPath(); rCtx.moveTo(sz,0); rCtx.lineTo(-sz,-sz*0.5); rCtx.lineTo(-sz,sz*0.5);
+    rCtx.closePath(); rCtx.fillStyle='#4fc3f7'; rCtx.globalAlpha=0.85; rCtx.fill();
+    rCtx.restore(); rCtx.globalAlpha=1;
+  }
+
+  // Nodes
+  for(let i=0;i<9;i++){
+    const [x,y]=rXY(i);
+    const s=d.s[i], active=d.a[i]===1, onR=rn.includes(i), hov=rHov===i;
+    const col=s>0.75?'#ef9a9a':s>0.4?'#fff176':'#81c784';
+    const r=hov?25:onR?22:17;
+
+    if(onR){
+      rCtx.beginPath(); rCtx.arc(x,y,r+6,0,Math.PI*2);
+      rCtx.strokeStyle='rgba(79,195,247,0.12)'; rCtx.lineWidth=4; rCtx.stroke();
+    }
+    rCtx.beginPath(); rCtx.arc(x,y,r+2,0,Math.PI*2);
+    rCtx.strokeStyle=onR?'#4fc3f7':active?'#2e2e2e':'#1a1a1a';
+    rCtx.lineWidth=hov?2:1.5; rCtx.stroke();
+    rCtx.beginPath(); rCtx.arc(x,y,r,0,Math.PI*2);
+    rCtx.fillStyle=active?col:'#141414'; rCtx.globalAlpha=active?1:0.5;
+    rCtx.fill(); rCtx.globalAlpha=1;
+
+    rCtx.textAlign='center'; rCtx.textBaseline='middle';
+    rCtx.fillStyle=active?'#111':'#333';
+    rCtx.font='bold 9px monospace';
+    rCtx.fillText(NNAMES[i].replace('node_','N'), x, y-5);
+    rCtx.font='8px monospace';
+    rCtx.fillStyle=active?'#111':'#333';
+    rCtx.fillText((s*100).toFixed(0)+'%', x, y+5);
+    rCtx.textBaseline='alphabetic';
+    if(!active){
+      rCtx.fillStyle='#333'; rCtx.font='11px monospace';
+      rCtx.textBaseline='middle'; rCtx.fillText('×',x,y); rCtx.textBaseline='alphabetic';
+    }
+  }
+
+  // Legend
+  const lx=10, ly=H-92;
+  rCtx.textAlign='left';
+  [['#81c784','stress < 40%'],['#fff176','stress 40–75%'],['#ef9a9a','stress > 75%'],
+   ['#4fc3f7','best route'],['#1e1e1e','inactive edge']].forEach(([c,l],i)=>{
+    rCtx.fillStyle=c; rCtx.fillRect(lx,ly+i*17,10,10);
+    rCtx.fillStyle='#3a3a3a'; rCtx.font='9px monospace'; rCtx.fillText(l,lx+14,ly+i*17+9);
+  });
+}
+
+function rMov(e){
+  const rect=rCan.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const d=QUBO[rHour];
+  let found=-1;
+  for(let i=0;i<9;i++){const [x,y]=rXY(i);if((mx-x)**2+(my-y)**2<28**2){found=i;break;}}
+  if(found!==rHov){rHov=found;rDraw();}
+  const tt=document.getElementById('rtt');
+  if(found>=0){
+    const s=d.s[found], active=d.a[found]===1, onR=d.route.includes(NNAMES[found]);
+    const sc=s>0.75?'#ef9a9a':s>0.4?'#fff176':'#81c784';
+    tt.style.display='block';
+    tt.style.left=(mx+16)+'px'; tt.style.top=(my-10)+'px';
+    tt.innerHTML=`<b style="color:#fff">${NNAMES[found]}</b><br>
+      stress: <span style="color:${sc}">${(s*100).toFixed(1)}%</span><br>
+      active: ${active?'<span style="color:#81c784">yes</span>':'<span style="color:#444">no</span>'}<br>
+      on route: ${onR?'<span style="color:#4fc3f7">✓ yes</span>':'<span style="color:#444">no</span>'}`;
+  } else {
+    tt.style.display='none';
+  }
+}
+</script>
+</body>
+</html>
